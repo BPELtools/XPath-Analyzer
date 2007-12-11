@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<definitions targetNamespace="http://docs.active-endpoints.com/activebpel/sample/wsdl/loan_approval/2006/09/loan_approval.wsdl" xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:plnk="http://schemas.xmlsoap.org/ws/2003/05/partner-link/" xmlns:tns="http://docs.active-endpoints.com/activebpel/sample/wsdl/loan_approval/2006/09/loan_approval.wsdl" xmlns:lns="http://docs.active-endpoints.com/activebpel/sample/wsdl/loan_approval/2006/09/loan_approval.wsdl">
+<message name="creditInformationMessage">
+   <part name="firstName" type="xsd:string"/>
+   <part name="name" type="xsd:string"/>
+   <part name="amount" type="xsd:integer"/>
+</message>
+<message name="approvalMessage">
+   <part name="accept" type="xsd:string"/>
+   <part name="risklevel" type="xsd:string"/>
+</message>
+<message name="approvalSecureMessage">
+   <part name="accept" type="xsd:string"/>
+   <part name="risklevel" type="xsd:string"/>
+</message>
+<message name="riskAssessmentMessage">
+   <part name="level" type="xsd:string"/>
+   <part name="levelSecure" type="xsd:string"/>
+</message>   
+<message name="errorMessage">
+   <part name="errorCode" type="xsd:integer"/>
+</message>
+<portType name="loanServicePT">
+   <operation name="request">
+      <input message="lns:creditInformationMessage"/>
+      <output message="lns:approvalMessage"/>
+      <fault name="unableToHandleRequest" message="lns:errorMessage"/>
+   </operation>
+</portType>
+<portType name="riskAssessmentPT">
+   <operation name="check">
+      <input message="lns:creditInformationMessage"/>
+      <output message="lns:riskAssessmentMessage"/>
+      <fault name="loanProcessFault" message="lns:errorMessage"/>
+   </operation>
+</portType>
+<portType name="loanApprovalPT">
+   <operation name="approve">
+      <input message="lns:creditInformationMessage"/>
+      <output message="lns:approvalMessage"/>
+      <fault name="loanProcessFault" message="lns:errorMessage"/>
+   </operation>
+</portType>     
+<portType name="loanApprovalSecurePT">
+   <operation name="secureApprove">
+      <input message="lns:creditInformationMessage"/>
+      <output message="lns:approvalSecureMessage"/>
+      <fault name="loanProcessFault" message="lns:errorMessage"/>
+   </operation>
+</portType>  
+<binding name="SOAPBinding" type="tns:loanApprovalPT">
+    <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="approve">
+      <soap:operation soapAction="" style="rpc"/>
+      <input>
+        <soap:body use="encoded" namespace="urn:loanapprover" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+      </input>
+      <output>
+        <soap:body use="encoded" namespace="urn:loanapprover" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+      </output>
+   </operation>
+</binding>
+<service name="LoanApprover">
+    <documentation>Loan Approver Service</documentation>
+    <port name="SOAPPort" binding="tns:SOAPBinding">
+      <soap:address location="http://localhost:8080/active-bpel/services/ApproverWebService"/>
+    </port>
+</service>
+<binding name="SOAPBinding1" type="tns:riskAssessmentPT">
+  <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+  <operation name="check">
+    <soap:operation soapAction="" style="rpc"/>
+    <input>
+       <soap:body use="encoded" namespace="urn:loanassessor" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+    </input>
+    <output>
+       <soap:body use="encoded" namespace="urn:loanassessor" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+    </output>
+  </operation>
+</binding>
+<service name="LoanAssessor">
+   <documentation>Loan Assessor Service</documentation>
+   <port name="SOAPPort1" binding="tns:SOAPBinding1">
+     <soap:address location="http://localhost:8080/active-bpel/services/AssessorWebService"/>
+   </port>
+</service>
+<binding name="SOAPBinding2" type="tns:loanApprovalSecurePT">
+    <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="secureApprove">
+        <soap:operation soapAction="" style="rpc"/>
+      <input>
+        <soap:body use="encoded" namespace="urn:loansecureapprover" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+      </input>
+      <output>
+        <soap:body use="encoded" namespace="urn:loansecureapprover" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+      </output>
+   </operation>
+</binding>
+<service name="LoanSecureApprover">
+    <documentation>Loan Secure Approver Service</documentation>
+    <port name="SOAPPort2" binding="tns:SOAPBinding2">
+      <soap:address location="http://localhost:8080/active-bpel/services/SecureApproverWebService"/>
+    </port>
+</service>
+<plnk:partnerLinkType name="loanPartnerLinkType">
+   <plnk:role name="loanService">
+       <plnk:portType name="lns:loanServicePT"/>
+   </plnk:role>
+</plnk:partnerLinkType>
+<plnk:partnerLinkType name="loanApprovalLinkType">
+   <plnk:role name="approver">
+       <plnk:portType name="lns:loanApprovalPT"/>
+   </plnk:role>   
+</plnk:partnerLinkType>
+<plnk:partnerLinkType name="loanApprovalSecureLinkType">
+   <plnk:role name="secureApprover">
+       <plnk:portType name="lns:loanApprovalSecurePT"/>
+   </plnk:role>   
+</plnk:partnerLinkType>
+<plnk:partnerLinkType name="riskAssessmentLinkType">
+   <plnk:role name="assessor">
+       <plnk:portType name="lns:riskAssessmentPT"/>
+   </plnk:role>   
+</plnk:partnerLinkType>
+</definitions>

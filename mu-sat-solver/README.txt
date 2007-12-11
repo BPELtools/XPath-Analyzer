@@ -1,0 +1,1 @@
+The mu-sat-solver has never been released into the public as binary. The solver can be tried online at http://wam.inrialpes.fr/websolver/.

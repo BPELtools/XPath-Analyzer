@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<process name="loanApprovalProcess" suppressJoinFailure="yes"
+ xmlns="http://docs.oasis-open.org/wsbpel/2.0/process/executable" xmlns:bpel="http://docs.oasis-open.org/wsbpel/2.0/process/executable" xmlns:bpws="http://schemas.xmlsoap.org/ws/2003/03/business-process/" xmlns:lns="http://docs.active-endpoints.com/activebpel/sample/wsdl/loan_approval/2006/09/loan_approval.wsdl" xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://docs.active-endpoints.com/activebpel/sample/bpel/loan_approval/2006/09/loan_approval.bpel">
+   <import importType="http://schemas.xmlsoap.org/wsdl/" location="project:/BPEL_Samples/Resources/WSDL/loan_approval.wsdl" namespace="http://docs.active-endpoints.com/activebpel/sample/wsdl/loan_approval/2006/09/loan_approval.wsdl"/>
+   <partnerLinks>
+      <partnerLink name="customer" partnerLinkType="lns:loanPartnerLinkType" myRole="loanService"/>
+      <partnerLink name="approver" partnerLinkType="lns:loanApprovalLinkType" partnerRole="approver"/>
+      <partnerLink name="secureApprover" partnerLinkType="lns:loanApprovalSecureLinkType" partnerRole="secureApprover"/>
+      <partnerLink name="assessor" partnerLinkType="lns:riskAssessmentLinkType" partnerRole="assessor"/>
+   </partnerLinks>
+   <variables>
+      <variable name="request" messageType="lns:creditInformationMessage"/>
+      <variable name="risk" messageType="lns:riskAssessmentMessage"/>
+      <variable name="approval" messageType="lns:approvalMessage"/>
+      <variable name="secureApproval" messageType="lns:approvalSecureMessage"/>
+   </variables>
+   <faultHandlers>
+      <catch faultMessageType="lns:errorMessage" faultName="lns:loanProcessFault" faultVariable="error">
+         <reply faultName="lns:unableToHandleRequest" operation="request" partnerLink="customer" portType="lns:loanServicePT" variable="error"/>
+      </catch>
+   </faultHandlers>
+   <flow>
+      <links>
+         <link name="loanRequest-to-assessment"/>
+         <link name="loanRequest-to-approval"/>
+         <link name="loanRequest-to-approvalSecure"/>
+         <link name="assessment-to-accept"/>
+         <link name="assessment-to-approval"/>
+         <link name="approval-to-accept"/>
+         <link name="approval-to-decline"/>
+         <link name="approvalSecure-to-accept"/>
+         <link name="approvalSecure-to-decline"/>
+         <link name="accept-to-loanReply"/>
+         <link name="decline-to-loanReply"/>
+         <link name="loanRequest-to-accept"/>
+      </links>
+      <receive name="loanRequest" createInstance="yes" operation="request" partnerLink="customer" portType="lns:loanServicePT" variable="request">
+         <sources>
+            <source linkName="loanRequest-to-assessment">
+               <transitionCondition>$request.amount &lt; 20000.0</transitionCondition>
+            </source>
+            <source linkName="loanRequest-to-approval">
+               <transitionCondition>$request.amount &gt;= 20000.0</transitionCondition>
+            </source>
+            <source linkName="loanRequest-to-approvalSecure">
+               <transitionCondition>$request.amount &gt;= 100000.0</transitionCondition>
+            </source>
+            <source linkName="loanRequest-to-accept">
+               <transitionCondition>$request.amount &gt;= 100000.0</transitionCondition>
+            </source>
+         </sources>
+      </receive>
+
+      <invoke name="assessment" inputVariable="request" operation="check" outputVariable="risk" partnerLink="assessor" portType="lns:riskAssessmentPT">
+         <targets>
+            <target linkName="loanRequest-to-assessment"/>
+         </targets>
+         <sources>
+            <source linkName="assessment-to-accept">
+               <transitionCondition>$risk.level = 'low'</transitionCondition>
+            </source>
+            <source linkName="assessment-to-approval">
+               <transitionCondition>$risk.level != 'low'</transitionCondition>
+            </source>
+         </sources>
+      </invoke>
+
+      <assign name="accept">
+         <targets>
+            <joinCondition>$assessment-to-accept or ($approval-to-accept and $approvalSecure-to-accept) or ($approval-to-accept and not($loanRequest-to-accept))</joinCondition>
+            <target linkName="assessment-to-accept"/>
+            <target linkName="approval-to-accept"/>
+            <target linkName="approvalSecure-to-accept"/>
+            <target linkName="loanRequest-to-accept"/>
+         </targets>
+         <sources>
+            <source linkName="accept-to-loanReply"/>
+         </sources>
+         <copy>
+            <from>'yes'</from>
+            <to>$approval.accept</to>
+         </copy>
+      </assign>
+
+      <invoke name="approval" inputVariable="request" operation="approve" outputVariable="approval" partnerLink="approver" portType="lns:loanApprovalPT">
+         <targets>
+            <target linkName="loanRequest-to-approval"/>
+            <target linkName="assessment-to-approval"/>
+         </targets>
+         <sources>
+            <source linkName="approval-to-accept">
+               <transitionCondition>$approval.risklevel = 'calculable'</transitionCondition>
+            </source>
+            <source linkName="approval-to-decline">
+               <transitionCondition>$approval.risklevel != 'calculable'</transitionCondition>
+            </source>
+         </sources>
+      </invoke>
+
+      <invoke name="approvalSecure" inputVariable="request" operation="secureApprove" outputVariable="secureApproval" partnerLink="secureApprover" portType="lns:loanApprovalSecurePT">
+         <targets>
+            <target linkName="loanRequest-to-approvalSecure"/>
+         </targets>
+         <sources>
+            <source linkName="approvalSecure-to-accept">
+               <transitionCondition>$secureApproval.risklevel = 'calculable'</transitionCondition>
+            </source>
+            <source linkName="approvalSecure-to-decline">
+               <transitionCondition>$secureApproval.risklevel != 'calculable'</transitionCondition>
+            </source>
+         </sources>
+      </invoke>
+
+      <assign name="decline">
+         <targets>
+            <target linkName="approval-to-decline"/>
+            <target linkName="approvalSecure-to-decline"/>
+         </targets>
+         <sources>
+            <source linkName="decline-to-loanReply"/>
+         </sources>
+         <copy>
+            <from>'no'</from>
+            <to>$approval.accept</to>
+         </copy>
+      </assign>
+
+      <reply name="loanReply" operation="request" partnerLink="customer" portType="lns:loanServicePT" variable="approval">
+         <targets>
+            <target linkName="accept-to-loanReply"/>
+            <target linkName="decline-to-loanReply"/>
+         </targets>
+      </reply>
+   </flow>
+</process>
