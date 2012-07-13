@@ -7,7 +7,7 @@ The analyzer may be run on a BPEL process to identify mutually exclusive control
 Building
 --------
 
-CrossRefX can be built using [gradle](http://www.gradle.org/).
+XPath-Analyzer can be built using [gradle](http://www.gradle.org/).
 
 This also installs the dependencies jaxen, jdom, and wsdl4j.
 
