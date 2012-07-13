@@ -1,0 +1,5 @@
+.classpath
+.project
+.gradle
+.settings/org.eclipse.jdt.core.prefs
+build/

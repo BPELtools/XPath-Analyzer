@@ -1,0 +1,28 @@
+apply plugin: 'application'
+apply plugin: 'eclipse'
+
+mainClassName = "control.Application"
+
+repositories {
+	maven {
+		url "http://repo1.maven.org/maven2/"
+	}
+}
+
+dependencies {
+    compile group: 'jaxen', name: 'jaxen', version: '1.1.1'
+    compile group: 'jdom', name: 'jdom', version: '1.0'
+	compile group: 'wsdl4j', name: 'wsdl4j', version: '1.6.1'
+} 
+
+jar {
+	// main class has to be set explicitly
+	manifest{
+		attributes(
+			"Main-Class": mainClassName
+		)
+	}
+
+	// creates self-contained jar
+	from { configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) } }
+}
